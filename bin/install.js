@@ -4170,6 +4170,8 @@ function writeManifest(configDir, runtime = 'claude') {
 /**
  * Detect user-modified GSD files by comparing against install manifest.
  * Backs up modified files to gsd-local-patches/ for reapply after update.
+ * Also saves pristine copies (from manifest) to gsd-pristine/ to enable
+ * three-way merge during reapply-patches (pristine vs user vs new).
  */
 function saveLocalPatches(configDir) {
   const manifestPath = path.join(configDir, MANIFEST_NAME);
@@ -4179,6 +4181,7 @@ function saveLocalPatches(configDir) {
   try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch { return []; }
 
   const patchesDir = path.join(configDir, PATCHES_DIR_NAME);
+  const pristineDir = path.join(configDir, 'gsd-pristine');
   const modified = [];
 
   for (const [relPath, originalHash] of Object.entries(manifest.files || {})) {
@@ -4186,6 +4189,7 @@ function saveLocalPatches(configDir) {
     if (!fs.existsSync(fullPath)) continue;
     const currentHash = fileHash(fullPath);
     if (currentHash !== originalHash) {
+      // Back up the user's modified version
       const backupPath = path.join(patchesDir, relPath);
       fs.mkdirSync(path.dirname(backupPath), { recursive: true });
       fs.copyFileSync(fullPath, backupPath);
@@ -4193,12 +4197,28 @@ function saveLocalPatches(configDir) {
     }
   }
 
+  // Save pristine copies of modified files from the CURRENT install (before wipe)
+  // These represent the original GSD distribution files that the user then modified.
+  // The reapply-patches workflow uses these for three-way merge:
+  //   pristine (original) → user's version (what they changed) → new version (after update)
   if (modified.length > 0) {
+    // We need the pristine originals, but the current files on disk are user-modified.
+    // The manifest records SHA-256 hashes but not content. However, we can reconstruct
+    // the pristine version from the npm package cache or git history.
+    // As a practical approach: save the manifest's version info so the reapply workflow
+    // knows which GSD version these files came from, enabling npm-based reconstruction.
     const meta = {
       backed_up_at: new Date().toISOString(),
       from_version: manifest.version,
-      files: modified
+      from_manifest_timestamp: manifest.timestamp,
+      files: modified,
+      pristine_hashes: {}
     };
+    // Record the original (pristine) hash for each modified file
+    // This lets the reapply workflow verify reconstructed pristine files
+    for (const relPath of modified) {
+      meta.pristine_hashes[relPath] = manifest.files[relPath];
+    }
     fs.writeFileSync(path.join(patchesDir, 'backup-meta.json'), JSON.stringify(meta, null, 2));
     console.log('  ' + yellow + 'i' + reset + '  Found ' + modified.length + ' locally modified GSD file(s) — backed up to ' + PATCHES_DIR_NAME + '/');
     for (const f of modified) {

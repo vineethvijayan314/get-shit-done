@@ -1388,14 +1388,19 @@ function cmdStateSync(cwd, options, raw) {
 
 /**
  * Prune old entries from STATE.md sections that grow unboundedly (#1970).
- * Moves decisions, performance metrics rows, and recently-completed summaries
+ * Moves decisions, recently-completed summaries, and resolved blockers
  * older than keepRecent phases to STATE-ARCHIVE.md.
+ *
+ * Options:
+ *   keepRecent: number of recent phases to retain (default: 3)
+ *   dryRun: if true, return what would be pruned without modifying STATE.md
  */
 function cmdStatePrune(cwd, options, raw) {
   const statePath = planningPaths(cwd).state;
   if (!fs.existsSync(statePath)) { output({ error: 'STATE.md not found' }, raw); return; }
 
   const keepRecent = parseInt(options.keepRecent, 10) || 3;
+  const dryRun = !!options.dryRun;
   const currentPhaseRaw = stateExtractField(fs.readFileSync(statePath, 'utf-8'), 'Current Phase');
   const currentPhase = parseInt(currentPhaseRaw, 10) || 0;
   const cutoff = currentPhase - keepRecent;
@@ -1408,7 +1413,11 @@ function cmdStatePrune(cwd, options, raw) {
   const archivePath = path.join(path.dirname(statePath), 'STATE-ARCHIVE.md');
   const archived = [];
 
-  readModifyWriteStateMd(statePath, (content) => {
+  // Shared pruning logic applied to both dry-run and real passes.
+  // Returns { newContent, archivedSections }.
+  function prunePass(content) {
+    const sections = [];
+
     // Prune Decisions section: entries like "- [Phase N]: ..."
     const decisionPattern = /(###?\s*(?:Decisions|Decisions Made|Accumulated.*Decisions)\s*\n)([\s\S]*?)(?=\n###?|\n##[^#]|$)/i;
     const decMatch = content.match(decisionPattern);
@@ -1425,7 +1434,7 @@ function cmdStatePrune(cwd, options, raw) {
         }
       }
       if (archive.length > 0) {
-        archived.push({ section: 'Decisions', count: archive.length, lines: archive });
+        sections.push({ section: 'Decisions', count: archive.length, lines: archive });
         content = content.replace(decisionPattern, (_m, header) => `${header}${keep.join('\n')}`);
       }
     }
@@ -1446,12 +1455,58 @@ function cmdStatePrune(cwd, options, raw) {
         }
       }
       if (archive.length > 0) {
-        archived.push({ section: 'Recently Completed', count: archive.length, lines: archive });
+        sections.push({ section: 'Recently Completed', count: archive.length, lines: archive });
         content = content.replace(recentPattern, (_m, header) => `${header}${keep.join('\n')}`);
       }
     }
 
-    return content;
+    // Prune resolved blockers: lines marked as resolved (strikethrough ~~text~~
+    // or "[RESOLVED]" prefix) with a phase reference older than cutoff
+    const blockersPattern = /(###?\s*(?:Blockers|Blockers\/Concerns|Blockers\s*&\s*Concerns)\s*\n)([\s\S]*?)(?=\n###?|\n##[^#]|$)/i;
+    const blockersMatch = content.match(blockersPattern);
+    if (blockersMatch) {
+      const lines = blockersMatch[2].split('\n');
+      const keep = [];
+      const archive = [];
+      for (const line of lines) {
+        const isResolved = /~~.*~~|\[RESOLVED\]/i.test(line);
+        const phaseMatch = line.match(/Phase\s+(\d+)/i);
+        if (isResolved && phaseMatch && parseInt(phaseMatch[1], 10) <= cutoff) {
+          archive.push(line);
+        } else {
+          keep.push(line);
+        }
+      }
+      if (archive.length > 0) {
+        sections.push({ section: 'Blockers (resolved)', count: archive.length, lines: archive });
+        content = content.replace(blockersPattern, (_m, header) => `${header}${keep.join('\n')}`);
+      }
+    }
+
+    return { newContent: content, archivedSections: sections };
+  }
+
+  if (dryRun) {
+    // Dry-run: compute what would be pruned without writing anything
+    const content = fs.readFileSync(statePath, 'utf-8');
+    const result = prunePass(content);
+    const totalPruned = result.archivedSections.reduce((sum, s) => sum + s.count, 0);
+    output({
+      pruned: false,
+      dry_run: true,
+      cutoff_phase: cutoff,
+      keep_recent: keepRecent,
+      sections: result.archivedSections.map(s => ({ section: s.section, entries_would_archive: s.count })),
+      total_would_archive: totalPruned,
+      note: totalPruned > 0 ? 'Run without --dry-run to actually prune' : 'Nothing to prune',
+    }, raw, totalPruned > 0 ? 'true' : 'false');
+    return;
+  }
+
+  readModifyWriteStateMd(statePath, (content) => {
+    const result = prunePass(content);
+    archived.push(...result.archivedSections);
+    return result.newContent;
   }, cwd);
 
   // Write archived entries to STATE-ARCHIVE.md

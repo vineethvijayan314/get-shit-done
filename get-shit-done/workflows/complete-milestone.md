@@ -1,28 +1,14 @@
-<purpose>
-Archive milestone. Evolve vision. Tag release.
-</purpose>
+# Phase: Complete Milestone
+Trigger: `/gsd-complete-milestone`
 
-<process>
+## S1: Sync
+- Action: Final `gsd-health --repair`.
+- Check: All phases `passed`. No open `BLOCKER`.
 
-S1: Audit
-- Open items check.
-- Traceability check (REQUIREMENTS.md).
+## S2: Summarize
+- Agent: `gsd-roadmapper`.
+- Output: `MILESTONE-SUMMARY.md`. Final score 1-10.
 
-S2: Evolve
-- Update PROJECT.md: Shipped -> Validated.
-- Context: update tech stack + LOC.
-
-S3: Archive
-- Snapshot: ROADMAP, REQUIREMENTS, AUDIT.
-- Move: phase dirs -> `milestones/v{X.Y}-phases/`.
-
-S4: Retrospective
-- Update RETROSPECTIVE.md. Lessons + inefficencies.
-
-S5: Git
-- Merge + Tag: `git tag -a v{VERSION}`.
-
-S6: Finalize
-- Clean `.planning/` root.
-- Next: `/gsd-new-milestone`.
-</process>
+## S3: Snapshot
+- Action: `git tag -a vX.Y -m "milestone complete"`.
+- Archival: Move `.planning/` to `archive/` (optional).

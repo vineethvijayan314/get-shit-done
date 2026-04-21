@@ -1,27 +1,29 @@
-<purpose>
-Ad-hoc task execution. Single-command agility. GSD guarantees (atomic commits, STATE tracking).
-</purpose>
+# Phase: Quick Task
+Trigger: `/gsd-quick [description] [--validate] [--discuss] [--research]`
 
-<process>
+## S1: Init
+- Logic: `slug=$(echo $DESC | slugify)`. `id=$(gsd-sdk query id.next-quick)`.
+- Dir: `.planning/quick/${id}-${slug}/`.
 
-S1: Setup
-- Strip flags: `--full` (quality pipeline) | `--no-commit`.
-- Check `.planning/quick/` DIR. Create if missing.
+## S2: Discuss (optional)
+- Agent: `gsd-advisor-researcher`.
+- Goal: Align intent. Cite D-XX.
 
-S2: Plan
-- Spawn `gsd-planner` (mode: quick).
-- Result: Micro-plan in `.planning/quick/TASK-ID.md`.
-- IF `--full` -> Add `gsd-research-phase` + `gsd-verify-work`.
+## S3: Research (optional)
+- Agent: `gsd-advisor-researcher`.
+- Action: Discovery level 2.
 
-S3: Execute
-- Spawn `gsd-executor`.
-- Constraints: Target only files in micro-plan. No scope creep.
+## S4: Execute
+- Agent: `gsd-executor`.
+- Process: Atomic commit. Deviations allowed.
 
-S4: Verify
-- Default: Syntax + build.
-- IF `--full` -> Run `gsd-verify-work`.
+## S5: Review (optional)
+- Agent: `gsd-code-reviewer`.
+- Logic: Adversarial review of diffs.
 
-S5: Commit
-- Logic: Atomic commit logic (convention).
-- Update: `STATE.md` quick tasks table.
-</process>
+## S6: Verify (optional)
+- Agent: `gsd-verifier`.
+- Logic: Goal-backward check.
+
+## S7: State
+- Update: `STATE.md` Quick Tasks table.

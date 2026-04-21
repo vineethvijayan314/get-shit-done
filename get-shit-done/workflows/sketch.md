@@ -1,20 +1,11 @@
-<purpose>
-UI Mockups. Throwaway HTML. 2-3 variants. Design direction explore.
-</purpose>
+# Phase: Sketch
+Trigger: `/gsd-sketch [description]`
 
-<process>
+## S1: Visualize
+- Agent: `gsd-advisor-researcher`.
+- Goal: Create UI mockups or architecture diagrams.
+- Tool: `generate_image`.
 
-S1: Goal
-- Define visual target. Style (Standard/Modern/Glass/Compact).
-
-S2: Mock
-- Single-file HTML in `.planning/sketches/`.
-- Logic: Internal CSS + Vanilla JS.
-- Requirement: High-fidelity visuals. Harmony.
-
-S3: Review
-- Open browser. `AskUserQuestion(header: "Review", question: "Which variant matches vision?", options: [Var 1, Var 2, Iteration Needed])`.
-
-S4: Log
-- Store finding in `SKETCH-LOG.md`.
-</process>
+## S2: Feedback
+- Action: Present images to user. Iterate.
+- State: Save final designs to `docs/pics/` or `RESEARCH.md`.

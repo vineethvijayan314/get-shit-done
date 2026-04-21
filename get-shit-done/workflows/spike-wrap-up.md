@@ -1,21 +1,10 @@
-<purpose>
-Curate spike findings. Persistent technical skill. Summary generation.
-</purpose>
+# Phase: Spike Wrap-Up
+Trigger: Post-spike
 
-<process>
+## S1: Extract
+- Skill: `gsd-extract-learnings`.
+- Logic: Convert prototype code to `PATTERNS.md` or `RESEARCH.md`.
 
-S1: Intake
-- Read `.planning/spikes/`. Identify successful patterns/fixes.
-
-S2: Extract
-- Hard-won knowledge. Version compatibility. Logic fragments.
-- Tool: `gsd-sdk query extract-engineering-patterns`.
-
-S3: Save Skill
-- Dir: `.claude/skills/spike-findings-[project]/`.
-- Content: Implementation-ready technical prompt with code snippets.
-
-S4: Summary
-- `.planning/spikes/WRAP-UP-SUMMARY.md`.
-- Next: `/gsd-plan-phase`.
-</process>
+## S2: Cleanup
+- Action: `git checkout .`. Reset spike branch.
+- State: Save learnings to ROADMAP for implementation phase.

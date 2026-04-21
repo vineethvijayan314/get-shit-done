@@ -1,21 +1,16 @@
 # GSD Planning Config
+Schema for `.planning/config.json`.
 
-System configuration for GSD planning engine.
+## Core Fields
+- `project_code`: 3-4 char slug.
+- `model_profile`: budget | balanced | quality | inherit.
+- `branching_strategy`: none | phase | milestone.
+- `commit_docs`: true | false.
+- `yolo`: true (autonomous) | false (interactive).
 
-## Model Mapping
-| Tool | Target Model | Profile |
-|------|--------------|---------|
-| `gsd-planner` | sonnet-3.5 | reasoning |
-| `gsd-executor` | sonnet-3.5 | velocity |
-| `gsd-debugger` | o1 / reasoning | deep-think |
-
-## Standard Paths
-- `ROOT/.planning/ROADMAP.md`
-- `ROOT/.planning/STATE.md`
-- `ROOT/.planning/CONTEXT.md`
-- `ROOT/.planning/tasks/{phase}.md`
-
-## Protocols
-- **COMMIT**: "TASK_COMMIT_CONVENTION".
-- **VERIFY**: "DUAL_LAYER_VERIFICATION".
-- **CAVEMAN**: "FULL" (article-free).
+## Workflow Flags
+- `research`: Enable discovery agents.
+- `plan_check`: Enable adversarial audit.
+- `verifier`: Enable goal-backward validation.
+- `nyquist_validation`: Force test evidence.
+- `auto_advance`: Chain phases.

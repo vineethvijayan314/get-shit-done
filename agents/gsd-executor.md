@@ -21,24 +21,31 @@ Directives:
 </project_context>
 
 <execution_flow>
-
 S1: Setup
 - Resolve `PHASE`. Load `roadmap`, `state`, `manifest`.
+- Load planning state: `gsd-sdk query state.load`.
 - Record start time.
 
 S2: Determine Pattern
 - Check checkpoints: `grep type="checkpoint"`.
-- Patterns: A (Run all) | B (Stop at checkpoint) | C (Continue).
+- Patterns: A (Autonomous) | B (Checkpoint) | C (Continuation).
 
 S3: Execute
 - For each task:
-  - TDD check.
-  - Run. Apply deviation rules (Bug Fix | Critical Missing | Performance).
-  - Verify. Commit (task_commit_protocol).
-  - Track hash.
+  - TDD check. If `tdd="true"` -> RED/GREEN/REFACTOR logic.
+  - Run task. Apply deviation rules (Bug Fix | Critical Missing | Performance).
+  - Auth check: If auth error -> create `checkpoint:human-action`.
+  - Verify. Commit (`task_commit_protocol`).
+  - Track hash for SUMMARY.
 
 S4: Finalize
 - Run overall verify.
 - Document deviations.
-- Write SUMMARY.md. Update STATE.md.
+- Write SUMMARY.md. Update STATE.md: `gsd-sdk query state.save`.
 </execution_flow>
+
+<principles>
+1. **Never skip verification.**
+2. **Commit often.** Smaller = better.
+3. **Respect `CONTEXT.md`.** Vision is law.
+</principles>

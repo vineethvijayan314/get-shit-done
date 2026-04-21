@@ -1,74 +1,56 @@
-<purpose>
-Orchestrate phase execution. Wave-based parallel spawning or sequential inline.
-</purpose>
+# Phase: Execute
+Trigger: `/gsd-execute-phase [phase_number]`
 
-<process>
+## S1: Setup
+- Agent: `gsd-executor`.
+- Load planning state: `gsd-sdk query state.load`.
+- Check: PLAN.md exists. Context budget okay.
 
-S1: Initialize
-- Parse Args: `${PHASE}`, `--wave`, `--gaps-only`, `--cross-ai`.
-- `gsd-sdk query init.execute-phase`.
-- Sync: Clear `_auto_chain_active` if not `--auto`.
-- Guard: `.gitmodules` -> Fallback sequential (no worktrees).
+## S2: Implement
+- Multi-Agent Cycle:
+  1. `gsd-executor`: Run task. Code + Verify.
+  2. `gsd-code-reviewer`: (Optional) Review diffs.
+  3. `gsd-ui-auditor`: (Optional) 6-pillar visual audit.
+  4. `gsd-security-auditor`: Verify threat mitigations.
+- Guard: Fail on BLOCKER. Fix before next task.
 
-S2: Blocking Anti-Patterns
-- Check `${phase_dir}/.continue-here.md`.
-- REQ: If `severity="blocking"`, explain What/Manifest/Fix for each.
+## S3: Finalize
+- Write: SUMMARY.md.
+- State: `gsd-sdk query state.save`.
+- Record: Learning extraction.
+---
+# Phase: Verify
+Trigger: `/gsd-verify-phase [phase_number]`
 
-S3: Interactive Mode
-- Activated by: `--interactive`.
-- Logic: Skip spawning. Execute `execute-plan.md` INLINE sequentially.
-- Task checkpoints: Pause after every task for user feedback.
+## S1: Goal-Backward Audit
+- Agent: `gsd-verifier`.
+- Logic: Falsify SUMMARY. Ensure must-haves met.
+- Stance: Evidence only. Reject documentation.
 
-S4: Plan Discovery & Grouping
-- `gsd-sdk query phase-plan-index`.
-- Filtering: Skip completed plans. Apply gaps/wave filters.
-- Prerequisite: Fail if Wave N+1 started with Wave N incomplete.
-- Show: Execution table (Wave | Plans | Objective).
+## S2: Quality Audit
+- Agent: `gsd-eval-auditor`.
+- Scope: Coverage against rubrics.
+- Scoring: COVERED | PARTIAL | MISSING.
 
-S5: Cross-AI Delegation
-- Activated by: `--cross-ai` or `cross_ai: true` frontmatter.
-- Logic: Execute via `workflow.cross_ai_command` with stdin delivery.
-- REQ: Successful SUMMARY.md and non-zero exit before marking complete.
+## S3: Gaps
+- If gaps: Generate fix plans via `gsd-verifier`.
+- Process: Order by dependency. Fix missing -> fix wiring.
 
-S6: Wave Execution (Parallel)
-- Check: Intra-wave `files_modified` overlap. Overlap -> Force sequential for wave.
-- Describe Wave: 2-3 sentences per plan (What/How/Why).
-- Spawn: `gsd-executor` with `isolation="worktree"`.
-- Dispatch REQ: Sequential dispatch (single Task call per message) to avoid `.git/config.lock` race.
-- Branch Guard: Agent MUST `git reset --hard {EXPECTED_BASE}` first.
+## S4: Report
+- Output: `{PHASE}-VERIFICATION.md`.
+- Status: passed | gaps_found | human_needed.
+---
+# Workflow: Health
+Trigger: `/gsd-health [--repair] [--backfill]`
 
-S7: Wave Execution (Sequential Fallback)
-- Trigger: Worktrees disabled OR Copilot runtime.
-- Logic: Dispatch `gsd-executor` WITHOUT `isolation` OR execute inline.
+## S1: Scan
+- Logic: `gsd-sdk query validate.health $REPAIR_FLAG $BACKFILL_FLAG`.
+- Check: config, PROJECT, ROADMAP, STATE.
 
-S8: Join & Merge (Parallel)
-- Wait for agents. Fallback to filesystem spot-checks if signal fails.
-- Hook Check: Run `pre-commit` once after wave.
-- Merge Logic:
-  - FF-check: Main always wins for STATE.md/ROADMAP.md.
-  - Deletion guard: Block if worktree deleted files.
-  - Resurrection guard: `git rm` files re-added by merge but absent in Main.
-  - Rescue SUMMARY.md: Commit if agent skipped.
-- Cleanup: `git worktree remove --force`.
+## S2: Repair
+- If `--repair`: createConfig, resetConfig, regenerateState.
+- If `--backfill`: backfill milestones.
 
-S9: Integration Tests
-- Script: `npm test` | `cargo test` | `pytest`.
-- Guard: If test fail/timeout -> Skip tracking update. DO NOT mark plans complete.
-
-S10: Tracking Update
-- `gsd-sdk query roadmap.update-plan-progress`.
-- `gsd-sdk query commit "docs(phase): update tracking after wave"`.
-
-S11: Completion
-- Show summary results.
-- Handoff: `/gsd-verify-work`.
-</process>
-
-<success_criteria>
-- [ ] Wavestructure respected. Prereqs enforced.
-- [ ] Concurrent worktrees used with sequential dispatch.
-- [ ] Branch reset guard active in subagents.
-- [ ] Shared files (STATE/ROADMAP) protected during merge.
-- [ ] Post-merge test gate catches integration conflicts.
-- [ ] Resurrection guard prevents zombie files.
-</success_criteria>
+## S3: Report
+- Status: healthy | degraded | broken.
+- List: Errors [E-XX], Warnings [W-XX].

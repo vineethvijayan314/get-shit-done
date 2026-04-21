@@ -1,17 +1,14 @@
 # GSD Context Budget
 
-Token management. Context window optimization.
+Guidelines for managing LLM context token usage.
 
-## Strategy: Sharding
-- Read 5-15 files max per turn.
-- Use `intel/` artifacts instead of raw code where possible.
-- Truncate SESSION-LOG.md after 10 turns.
+## Thresholds
+- **Critical (75%+)**: ABORT. Split phase. Checkpoint required.
+- **Warning (50-75%)**: Alert user. Recommend summary extraction.
+- **Healthy (<50%)**: Normal operations.
 
-## Strategy: Caveman
-- Use "Full" or "Ultra" mode for all prompts.
-- Strip articles and fluff.
-- Estimated saving: 40-70% tokens.
-
-## Guard
-- IF budget > 80% (Model Limit) -> Trigger `gsd-cleanup`.
-- Archive old plans. Compress logs.
+## Strategies
+- **Sharding**: Move large logic to subagents. Orchestrator reads only interfaces.
+- **Ghosting**: Use `@file` references instead of inlining content.
+- **Cavemanification**: Use terse fragments (Tiers: Lite/Full/Ultra).
+- **TTL**: Rotate logs. Clear stale subagent tasks.

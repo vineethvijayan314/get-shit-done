@@ -41,6 +41,7 @@ export interface HooksConfig {
 }
 
 export interface GSDConfig {
+  communication_style: string;
   model_profile: string;
   commit_docs: boolean;
   parallelization: boolean;
@@ -58,6 +59,7 @@ export interface GSDConfig {
 // ─── Defaults ────────────────────────────────────────────────────────────────
 
 export const CONFIG_DEFAULTS: GSDConfig = {
+  communication_style: 'full',
   model_profile: 'balanced',
   commit_docs: true,
   parallelization: true,

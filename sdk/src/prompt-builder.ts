@@ -12,6 +12,15 @@ import type { ParsedPlan, PlanTask } from './types.js';
 
 const DEFAULT_ALLOWED_TOOLS = ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob'];
 
+const STYLE_DIRECTIVES: Record<string, string> = {
+  lite: 'COMMUNICATION STYLE: Lite. Drop filler and pleasantries. Sentence structure intact. Articles allowed for clarity.',
+  full: 'COMMUNICATION STYLE: Full. Drop articles (a, an, the). Drop filler and pleasantries. Use fragments. Direct [thing] [action].',
+  ultra: 'COMMUNICATION STYLE: Ultra. Maximum compression. Bare fragments. Use tables/lists over prose. Symbols OK.',
+  wenyan: 'COMMUNICATION STYLE: Wenyan. Classical Chinese literary compression. Highest token efficiency.',
+};
+
+const AUTO_CLARITY_GUARD = '\n\nAUTO-CLARITY: Automatically drop Caveman style and revert to normal English for security warnings, destructive actions, or user confusion. Resume caveman after safe.';
+
 // ─── Agent definition parsing ────────────────────────────────────────────────
 
 /**
@@ -98,10 +107,18 @@ function formatTask(task: PlanTask, index: number): string {
  *
  * @param plan - Parsed plan structure from plan-parser
  * @param agentDef - Raw content of gsd-executor.md agent definition (optional)
+ * @param style - Communication style (lite/full/ultra/wenyan)
  * @returns Assembled prompt string
  */
-export function buildExecutorPrompt(plan: ParsedPlan, agentDef?: string): string {
+export function buildExecutorPrompt(plan: ParsedPlan, agentDef?: string, style?: string): string {
   const sections: string[] = [];
+
+  // ── Style Directive ──
+  const activeStyle = style || process.env.CAVEMAN_DEFAULT_MODE || 'full';
+  const directive = STYLE_DIRECTIVES[activeStyle.toLowerCase()];
+  if (directive) {
+    sections.push(`## Style Directive\n\n${directive}${AUTO_CLARITY_GUARD}`);
+  }
 
   // ── Role instructions from agent definition ──
   if (agentDef) {

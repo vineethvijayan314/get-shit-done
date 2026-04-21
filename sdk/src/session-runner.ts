@@ -61,7 +61,7 @@ export async function runPlanSession(
   streamContext?: EventStreamContext,
 ): Promise<PlanResult> {
   // Build the executor prompt
-  const executorPrompt = buildExecutorPrompt(plan, agentDef);
+  const executorPrompt = buildExecutorPrompt(plan, agentDef, config.communication_style);
 
   // Resolve allowed tools — from agent definition or defaults
   const allowedTools = options?.allowedTools ??
@@ -282,7 +282,7 @@ export async function runPhaseStepSession(
       systemPrompt: {
         type: 'preset',
         preset: 'claude_code',
-        append: prompt,
+        append: `${prompt}\n\nCOMMUNICATION STYLE: ${config.communication_style || 'full'}`,
       },
       settingSources: ['project'],
       allowedTools,
